@@ -1,0 +1,358 @@
+---
+title: "Dimensionality Reduction using R"
+author: "Katheu"
+date: "7/15/2021"
+output: html_document
+---
+
+## Defining the Question
+
+I am a Data analyst at Carrefour Kenya and I'm currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax). My project has been divided into four parts where I'll explore a recent marketing dataset by performing various unsupervised learning techniques and later providing recommendations based on your insights. This section of the project entails reducing the dataset to a low dimensional dataset using the t-SNE algorithm or PCA. I will perform my analysis and provide insights gained from the analysis.
+
+## Loading the Datasets
+
+I have been provided with a sales dataset to perform dimensionality reduction on. Let's dive in by loading and previewing the dataset at hand.
+
+```{r}
+sales <- read.csv("http://bit.ly/CarreFourDataset")
+```
+
+
+### Previewing the top of our dataset
+
+```{r}
+head(sales)
+```
+
+### Previewing the bottom of our dataset
+
+```{r}
+tail(sales)
+```
+## Data Exploration
+
+```{r}
+View(sales)
+```
+
+Checking the structure of the dataset.
+
+```{r}
+str(sales)
+```
+Our dataset has 1000 rows and 16 columns. 8 of which have a character data type, one is an integer and the other 7 are numerical.
+
+Checking the summary of our dataset.
+
+```{r}
+summary(sales)
+```
+
+## Data Cleaning
+
+Checking for missing values.
+
+```{r}
+colSums(is.na(sales))
+```
+There are no missing values in our dataset. Let's now check for duplicates.
+
+```{r}
+sales[duplicated(sales),]
+```
+There are no duplicates in our dataset either.
+
+Checking for outliers
+
+```{r}
+boxplot(sales$Unit.price,
+        main ="Unit Price",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are no outliers in the unit price column.
+```{r}
+boxplot(sales$Quantity,
+        main ="Quantity",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are no outliers in the quantity column.
+
+```{r}
+boxplot(sales$Tax,
+        main ="Tax",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are a few outliers in the tax column.
+
+```{r}
+boxplot(sales$cogs,
+        main ="Cogs",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are a few outliers in the cogs column.
+```{r}
+boxplot(sales$gross.income,
+        main ="Gross Income",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are a few outliers in the Gross income column.
+
+```{r}
+boxplot(sales$Rating,
+        main ="Rating",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are no outliers in the rating column.
+
+## Exploratory Data Analysis
+
+### Univariate Analysis
+#### Measures of Central Tendency
+
+Finding the mean of our numeric columns
+
+```{r}
+colMeans(sales[sapply(sales,is.numeric)])
+```
+Finding the median of our numeric columns.
+
+```{r}
+unitprice_median <- median(sales$Unit.price)
+qty_median <- median(sales$Quantity)
+tax_median <- median(sales$Tax)
+cogs_median <- median(sales$cogs)
+income_median <- median(sales$gross.income)
+rating_median <- median (sales$Rating)
+
+unitprice_median
+qty_median
+tax_median
+cogs_median
+income_median
+rating_median
+```
+Finding the mode of our numeric columns. Let's create the mode function since it's not inbuilt.
+
+```{r}
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]}
+```
+
+```{r}
+getmode(sales$Unit.price)
+getmode(sales$Quantity)
+getmode(sales$Tax)
+getmode(sales$cogs)
+getmode(sales$gross.income)
+getmode(sales$Rating)
+```
+Finding the range in our columns. The results will give us the minimum and maximum values in our numeric columns.
+
+```{r}
+range(sales$Unit.price)
+range(sales$Quantity)
+range(sales$Tax)
+range(sales$cogs)
+range(sales$gross.income)
+range(sales$Rating)
+
+```
+Getting the quantiles in our columns.
+
+```{r}
+quantile(sales$Unit.price)
+quantile(sales$Quantity)
+quantile(sales$Tax)
+quantile(sales$cogs)
+quantile(sales$gross.income)
+quantile(sales$Rating)
+```
+Finding the variance of the numeric columns. This shows how the data values are dispersed around the mean.
+
+```{r}
+var(sales$Unit.price)
+var(sales$Quantity)
+var(sales$Tax)
+var(sales$cogs)
+var(sales$gross.income)
+var(sales$Rating)
+```
+Finding the standard deviation of our numeric columns
+
+```{r}
+sd(sales$Unit.price)
+sd(sales$Quantity)
+sd(sales$Tax)
+sd(sales$cogs)
+sd(sales$gross.income)
+sd(sales$Rating)
+```
+#### Histograms
+
+```{r}
+hist(sales$Unit.price, col  = "orange")
+
+```
+
+```{r}
+hist(sales$Quantity, col  = "dark green")
+
+```
+
+```{r}
+hist(sales$Tax, col = "dark red")
+```
+
+```{r}
+hist(sales$cogs, col = "yellow")
+```
+
+```{r}
+hist(sales$gross.income, col= "light blue")
+```
+
+```{r}
+hist(sales$Rating, col  ="pink")
+```
+
+### Bivariate Analysis
+#### Correlation
+
+```{r}
+library(corrplot)
+
+correlation <- cor(sales[,c(6,7,8,12,14,15,16)])
+corrplot(correlation, method = "square", type = "lower", diag = TRUE)
+```
+#### Correlation matrix
+
+This shows the extent to which variables correlate with each other.
+
+```{r}
+cor(sales$Unit.price, sales$Quantity)
+cor(sales$Tax, sales$Quantity)
+cor(sales$cogs, sales$gross.income)
+cor(sales$Quantity, sales$Rating)
+cor(sales$Tax, sales$gross.income)
+```
+
+## Dimensionality Reduction
+
+### t- Distributed Stochastic Neighbour Embedding(t-SNE)
+
+I will apply the t-Distributed Stochastic Neighbour Embedding(t-SNE) and PCA to perform dimensionality reduction in our dataset.
+t-SNE finds a way to project data into a low dimensional space so that the clustering in the high dimensional spaces is preserved.
+
+Loading our tnse library
+
+```{r}
+library(Rtsne)
+```
+
+Curating the database for analysis.
+
+```{r}
+Labels <- sales$Product.line
+sales$Product.line <- as.factor(sales$Product.line)
+```
+
+Plotting to see the dimensions.
+
+```{r}
+colors = rainbow(length(unique(sales$Product.line)))
+names(colors) = unique(sales$Product.line)
+```
+
+Executing our algorithm on the curated data.
+
+```{r}
+tsne <- Rtsne(sales[,-5], dims = 2, perplexity=30, verbose=TRUE, max_iter = 500)
+```
+Checking the summary of our model.
+
+```{r}
+summary(tsne)
+```
+Plotting our graph and closely examining it.
+
+```{r}
+plot(tsne$Y, t='n', main="tsne")
+text(tsne$Y, labels=sales$Product.line, col=colors[sales$Product.line])
+```
+### Principal Component Analysis
+
+PCA is a technique that helps in extracting a new set of variables called principal components from an existing large set of variables.
+We will apply this and see how it performs.
+
+Selecting the numerical data.
+
+```{r}
+df <- sales[,c(6:8,12:16)]
+head(df)
+```
+
+We then pass df to the prcomp(). We also set two arguments, center and scale, to be TRUE then preview our object with summary,
+
+```{r}
+sales.pca <- prcomp(sales[,c(6,7,8,12,14,15,16)], center = TRUE, scale. = TRUE)
+summary(sales.pca)
+```
+
+As a result we obtain 7 principal components, each which explain a percentate of the total variation of the dataset.
+Let's call str() to have a look at oour pca model.
+
+```{r}
+str(sales.pca)
+```
+We will now plot our pca.
+Installing our ggbiplot visualization package.
+
+```{r}
+library(devtools)
+install_github("vqv/ggbiplot")
+```
+Loading our ggbiplot library
+
+```{r}
+library(ggbiplot)
+ggbiplot(sales.pca)
+```
+From the graph, we see that gross income, quantity,unit price and the ratings are important factors in this analysis.
+
+PC1 explains 70.33% of the total variance, which means that nearly two-thirds of the information in the dataset (7 variables) can be encapsulated by just that one Principal Component. PC2 explains 14.3%% of the variance.
+Adding more detail to the plot, we provide arguments rownames as labels.
+
+```{r}
+ggbiplot(sales.pca, labels=rownames(sales), obs.scale = 1, var.scale = 1)
+```
+Let's now plot PC3 and PC4.
+
+```{r}
+ggbiplot(sales.pca,ellipse=TRUE,choices=c(3,4),   labels=rownames(sales))
+```
+From the graph we see that PC3 explains 14.1% of the variance while PC4 explains 1.3% of the total variance.
+
+## Recommendations
+
+* Quantity, Rating, Unit Price and Gross income are the most important features in this analysis.
+* PCA gives better insights over t-SNE for this kind of analysis so Carrefour should implement this algorithm when performing dimensionality reduction.
+* When coming up with a marketing strategy, promotions, discounts or adverts, the team should take into consideration the unit price of the commodities, their quantity, the ratings given and thecustomer's gross income to come up with tailor made strategies.

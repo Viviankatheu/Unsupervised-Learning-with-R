@@ -1,0 +1,141 @@
+---
+title: "Association Rules with R"
+author: "Katheu"
+date: "7/17/2021"
+output: html_document
+---
+
+## Defining the Question
+
+I am a Data analyst at Carrefour Kenya and I'm currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax). This project has been divided into four parts where I'll explore a recent marketing dataset by performing various unsupervised learning techniques and later providing recommendations based on my insights.
+
+In this section, I will create association rules that will allow us to identify relationships between variables in the dataset. The dataset comprises groups of items that will be associated with others. I will provide my insights thereafter.
+
+## Loading the Dataset
+
+First we will load the arules package.
+```{r}
+suppressWarnings(
+        suppressMessages(if
+                         (!require(arules, quietly=TRUE))
+                install.packages("arules")))
+library(arules)
+```
+
+We will use read.transactions function which will load data from comma-separated files and convert them to the class transactions, which is the kind of data that we will require while working with models of association rules.
+
+```{r}
+path <- "http://bit.ly/SupermarketDatasetII"
+  
+rules <- read.transactions(path, sep = ",")
+rules
+```
+
+Verifying the object's class.
+
+```{r}
+class(rules)
+```
+Previewing the first five transactions.
+
+```{r}
+inspect(rules[1:5])
+```
+If we want to view the items that make up our dataset, we can convert it into a dataframe as shown below.
+
+```{r}
+items<-as.data.frame(itemLabels(rules))
+colnames(items) <- "Item"
+head(items, 10) 
+```
+Generating a summary of our dataset. This will give us some information such as the most purchased items and the distribution of the item sets (no. of items purchased in each transaction), etc.
+
+```{r}
+summary(rules)
+```
+Exploring the frequency of some variables.
+
+```{r}
+itemFrequency(rules[, 5:10],type = "absolute")
+round(itemFrequency(rules[, 5:10],type = "relative")*100,2)
+```
+
+Producing a chart of frequencies and filtering to consider only items with a minimum percentage of support/ considering a top x of items.
+Displaying top 10 most common items in the transactions dataset and the items whose relative importance is at least 10%.
+
+```{r}
+par(mfrow = c(1, 2))
+itemFrequencyPlot(rules, topN = 10,col="darkgreen")
+itemFrequencyPlot(rules, support = 0.1,col="darkred")
+```
+
+From our plots, we see that mineral water is the most frequently purchased item, followed by eggs, spaghetti, french fries, chocolate, green tea, milk, ground beef, frozen vegetables and pancakes in that order.
+
+Building a model based on association rules using the apriori function.
+We use Min Support as 0.001 and confidence as 0.8.
+
+```{r}
+ass_rules <- apriori (rules, parameter = list(supp = 0.001, conf = 0.8))
+ass_rules
+```
+
+We use measures of significance and interest on the rules, determining which ones are interesting and which to discard.
+However since we built the model using 0.001 Min support and confidence as 0.8 we obtained 74 rules.
+However, in order to illustrate the sensitivity of the model to these two parameters, we will see what happens if we increase the support or lower the confidence.
+
+Building a apriori model with Min Support as 0.002 and confidence as 0.8.
+
+```{r}
+ass_rules2 <- apriori (rules,parameter = list(supp = 0.002, conf = 0.8))
+ass_rules2
+```
+
+Working with Min Support as 0.002 and confidence as 0.8, we get a set of 2 rules.
+
+Building a apriori model with Min Support as 0.002 and confidence as 0.6.
+
+```{r}
+ass_rules3 <- apriori (rules,parameter = list(supp = 0.001, conf = 0.6))
+ass_rules3
+```
+This gives us a set of 43 rules.
+
+In our first example, we increased the minimum support of 0.001 to 0.002 and model rules went from 74 to only 2. This would lead us to understand that using a high level of support can make the model lose interesting rules. In the second example, we decreased the minimum confidence level to 0.6 and the number of model rules went from 74 to 545. This would mean that using a low confidence level increases the number of rules to quite an extent and many will not be useful.
+
+We can perform some exploration on our model through the use of the summary function.
+Upon running the code, the function would give us information about the model i.e. the size of rules, depending on the items that contain these rules. 
+More statistical information such as support, lift and confidence is also provided.
+
+```{r}
+summary(ass_rules)
+```
+
+Observing rules built in our model i.e the first 5 model rules.
+
+```{r}
+inspect(ass_rules[1:5])
+
+```
+Interpretation of the first and fifth rule.
+
+* If someone buys frozen smothie and spinach, they are 88% likely to buy mineral water too.
+
+* If someone buys mushroom cream sauce and pasts, they are 95% likely to buy escalope too.
+
+Ordering these rules by a criteria such as the level of confidence
+then looking at the first five rules.
+We can also use different criteria such as: (by = "lift" or by = "support").
+
+```{r}
+ass_rules<-sort(ass_rules, by="confidence", decreasing=TRUE)
+inspect(ass_rules[1:5])
+```
+
+## Insights
+
+* From our plots, we see that mineral water is the most frequently purchased item, followed by eggs, spaghetti, french fries, chocolate, green tea, milk, ground beef, frozen vegetables and pancakes in that order.
+* The marketing team should give discounts for the most purchased items so as to attract more customers.
+
+* When arranging the lanes in the supermarket, goods which are mostly bought together should be arranged close together so as to make the shopping experience smooth for the customers.
+
+

@@ -1,0 +1,410 @@
+---
+title: "Feature Selection Using R"
+author: "Katheu"
+date: "7/15/2021"
+output: html_document
+---
+
+## Defining the Question
+
+I am a Data analyst at Carrefour Kenya and I'm currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax). My project has been divided into four parts where I'll explore a recent marketing dataset by performing various unsupervised learning techniques and later providing recommendations based on my insights. This section requires us to perform feature selection through the use of the unsupervised learning methods. I will perform my analysis and provide insights on the features that contribute the most information to the dataset.
+
+## Loading the Dataset
+
+I have been provided a sales dataset to perform feature selection on. Let's dive in by loading and previewing the dataset at hand.
+
+```{r}
+sales <- read.csv("http://bit.ly/CarreFourDataset")
+```
+
+### Previewing the top of our dataset
+
+```{r}
+head(sales)
+```
+### Previewing the bottom of our dataset.
+
+```{r}
+tail(sales)
+```
+
+## Data Exploration
+
+Checking the Structure of our dataset
+
+```{r}
+str(sales)
+```
+Our dataset has 1000 rows and 16 columns. 8 of which have a character data type, one is an integer and the other 7 are numerical.
+
+Checking our dataset's summary.
+
+```{r}
+summary(sales)
+```
+## Data Cleaning
+
+Checking for missing values
+
+```{r}
+colSums(is.na(sales))
+```
+There are no missing values in this dataset.
+
+Checking for duplicates.
+
+```{r}
+sales[duplicated(sales),]
+```
+
+There are no duplicates in our dataset.
+
+Checking for outliers.
+
+```{r}
+boxplot(sales$Unit.price,
+        main ="Unit Price",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are no outliers in the Unit price column.
+
+```{r}
+boxplot(sales$Quantity,
+        main ="Quantity",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are no outliers in the quantity column.
+
+```{r}
+boxplot(sales$Tax,
+        main ="Tax",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are a few outliers in the Tax column.
+
+```{r}
+boxplot(sales$cogs,
+        main ="Cogs",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are a few outliers in the cogs column.
+
+```{r}
+boxplot(sales$gross.income,
+        main ="Gross Income",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are a few outliers in the gross income column.
+
+```{r}
+boxplot(sales$Rating,
+        main ="Rating",
+        col = "orange",
+        border  = 'brown',
+        horizontal = TRUE,
+        notch = TRUE)
+```
+There are a few outliers in the rating column.
+
+## Exploratory Data Analysis
+
+### Univariate Analysis
+#### Measures of Central Tendency
+
+Finding the mean of our numeric columns
+
+```{r}
+colMeans(sales[sapply(sales,is.numeric)])
+```
+Finding the median of our numeric columns.
+
+```{r}
+unitprice_median <- median(sales$Unit.price)
+qty_median <- median(sales$Quantity)
+tax_median <- median(sales$Tax)
+cogs_median <- median(sales$cogs)
+income_median <- median(sales$gross.income)
+rating_median <- median (sales$Rating)
+
+unitprice_median
+qty_median
+tax_median
+cogs_median
+income_median
+rating_median
+```
+Finding the mode of our numeric columns. Let's create the mode function since it's not inbuilt.
+
+```{r}
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]}
+```
+
+```{r}
+getmode(sales$Unit.price)
+getmode(sales$Quantity)
+getmode(sales$Tax)
+getmode(sales$cogs)
+getmode(sales$gross.income)
+getmode(sales$Rating)
+```
+Finding the range in our columns. The results will give us the minimum and maximum values in our numeric columns.
+
+```{r}
+range(sales$Unit.price)
+range(sales$Quantity)
+range(sales$Tax)
+range(sales$cogs)
+range(sales$gross.income)
+range(sales$Rating)
+
+```
+Getting the quantiles in our columns.
+
+```{r}
+quantile(sales$Unit.price)
+quantile(sales$Quantity)
+quantile(sales$Tax)
+quantile(sales$cogs)
+quantile(sales$gross.income)
+quantile(sales$Rating)
+```
+Finding the variance of the numeric columns. This shows how the data values are dispersed around the mean.
+
+```{r}
+var(sales$Unit.price)
+var(sales$Quantity)
+var(sales$Tax)
+var(sales$cogs)
+var(sales$gross.income)
+var(sales$Rating)
+```
+Finding the standard deviation of our numeric columns.
+
+```{r}
+sd(sales$Unit.price)
+sd(sales$Quantity)
+sd(sales$Tax)
+sd(sales$cogs)
+sd(sales$gross.income)
+sd(sales$Rating)
+```
+#### Histograms
+
+```{r}
+hist(sales$Unit.price, col  = "orange")
+```
+
+```{r}
+hist(sales$Quantity, col  = "dark green")
+
+```
+
+```{r}
+hist(sales$Tax, col = "dark red")
+```
+
+```{r}
+hist(sales$cogs, col = "yellow")
+
+```
+
+```{r}
+hist(sales$gross.income, col= "light blue")
+
+```
+
+```{r}
+hist(sales$Rating, col  ="pink")
+
+```
+
+### Bivariate Analysis
+#### Correlation
+
+```{r}
+library(corrplot)
+
+correlation <- cor(sales[,c(6,7,8,12,14,15,16)])
+corrplot(correlation, method = "square", type = "lower", diag = TRUE)
+```
+Most of our variables have very strong correlations.
+
+## Feature Selection 
+### Filter Methods
+
+These methods apply a metric to assign a scoring to each feature. The features would then be ranked by the score.
+We will use the findCorrelation function included in the caret package to create a subset of variables.
+This function will allow us to remove redundancy by correlation using the given dataset. 
+Since we are working with a correlation matrix, we'll only use the numerical variables.
+
+```{r}
+df <- sales[,c(6,7,8,12,14,15,16)]
+head(df)
+```
+Loading our caret package.
+
+```{r}
+suppressWarnings(
+        suppressMessages(if
+                         (!require(caret, quietly=TRUE))
+                install.packages("caret")))
+library(caret)
+```
+
+Installing the corrplot package for correlation.
+
+```{r}
+suppressWarnings(
+        suppressMessages(if
+                         (!require(corrplot, quietly=TRUE))
+                install.packages("corrplot")))
+library(corrplot)
+```
+
+Getting the correlation matrix
+
+```{r}
+corrmatrix <- cor(df)
+corrmatrix
+```
+Finding variables that are highly correlated
+
+```{r}
+highlyCorrelated <- findCorrelation(corrmatrix, cutoff=0.75)
+highlyCorrelated
+```
+Let's get the names of these highly correlated variables.
+
+```{r}
+names(df[,highlyCorrelated])
+
+```
+From our output, the cogs, total and tax columns have the highest correlations.
+
+Removing redundant features.
+```{r}
+df2<-df[-highlyCorrelated]
+df2
+```
+Graphical comparison.
+
+```{r}
+par(mfrow = c(1, 2))
+corrplot(corrmatrix, order = "hclust")
+corrplot(cor(df2), order = "hclust")
+```
+
+### Embedded Methods
+
+We will use the ewkm function from the wskm package.
+This is a weighted subspace clustering algorithm that is well suited to very high dimensional data.
+
+Loading our wskm package.
+
+```{r}
+suppressWarnings(
+        suppressMessages(if
+                         (!require(wskm, quietly=TRUE))
+                install.packages("wskm")))
+library(wskm)
+```
+
+```{r}
+set.seed(23)
+model <- ewkm(df, 3, lambda=2, maxiter=1000)
+```
+
+Loading the cluster package.
+
+```{r}
+suppressWarnings(
+        suppressMessages(if
+                         (!require(cluster, quietly=TRUE))
+                install.packages("cluster")))
+library("cluster")
+```
+
+Let's cluster plot against the 1st 2 principal components.
+
+```{r}
+clusplot(df, model$cluster, color=TRUE, shade=TRUE,
+         labels=2, lines=1,main='Cluster Analysis for Supermarket sales')
+```
+From our plot, we see that the first 2 components explain 84.6 % of the point variability.
+Weights are calculated for each variable and cluster. 
+They are a measure of the relative importance of each variable with regards to the membership of the observations to that cluster. 
+The weights are incorporated into the distance function, typically reducing the distance for more important variables.
+Weights remain stored in the model and we can check them as follows:
+
+```{r}
+round(model$weights*100,2)
+```
+
+### Feature Ranking
+
+We will use the FSelector Package. This is a package containing functions for selecting attributes from a given dataset.
+Loading the required package.
+
+```{r}
+suppressWarnings(
+        suppressMessages(if
+                         (!require(FSelector, quietly=TRUE))
+                install.packages("FSelector")))
+library(FSelector)
+```
+
+From the FSelector package, we use the correlation coefficient as a unit of valuation. 
+This is be one of the several algorithms contained in the FSelector package that can be used to rank the variables.
+
+
+```{r}
+Scores <- linear.correlation(Total~.,df)
+Scores
+```
+From the output above, we observe a list containing rows of variables on the left and score on the right. 
+In order to make a decision, we define a cutoff i.e. suppose we want to use the top 5 representative variables, through the use of the cutoff.k function included in the FSelector package.
+
+```{r}
+Subset <- cutoff.k(Scores, 5)
+as.data.frame(Subset)
+```
+We could also set cutoff as a percentage which would indicate that we would want to work with the percentage of the best variables.
+
+```{r}
+Subset2 <-cutoff.k.percent(Scores, 0.4)
+as.data.frame(Subset2)
+```
+Instead of using the scores for the correlation coefficient, we can use an entropy - based approach.
+
+```{r}
+Scores2 <- information.gain(Total~., df)
+Scores2
+```
+
+Choosing variables by cutoff method.
+
+```{r}
+Subset3 <- cutoff.k(Scores2, 5)
+as.data.frame(Subset3)
+```
+## Recommendations
+
+* The most important variables or features are the tax, cogs, gross income, quantity and unit price in determining the sales in the supermarket.
+* When coming up with a marketing strategy, promotions, discounts or adverts, the team should take into consideration the tax, unit price of the commodities, their quantity, the ratings given and the customer's gross income to come up with tailor made strategies.
