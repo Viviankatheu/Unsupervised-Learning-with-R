@@ -1,0 +1,69 @@
+---
+title: "Anomaly Detection using R"
+author: "Katheu"
+date: "7/17/2021"
+output: html_document
+---
+
+## Defining the Question
+
+I'm a Data analyst at Carrefour Kenya and I'm currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax). This project has been divided into four parts where I'll explore a recent marketing dataset by performing various unsupervised learning techniques and later providing recommendations based on your insights.
+I have been requested to check whether there are any anomalies in the given sales dataset. The objective of this task being fraud detection.
+
+Let's load the libraries we'll need for this task.
+
+```{r}
+library(tidyverse)
+library(anomalize)
+```
+Loading the tibbletime and dplyr library.
+```{r}
+library(tibbletime)
+library(dplyr)
+```
+
+## Loading our dataset.
+
+```{r}
+sales <- read.csv("http://bit.ly/CarreFourSalesDataset")
+
+sales$Date <- as.Date(sales$Date, format ="%m/%d/%Y")
+sales$Date <- sort(sales$Date, decreasing = FALSE)
+
+sales <- as_tbl_time(sales, index = Date)
+
+sales <- sales %>%
+    as_period("daily")
+
+```
+
+### Previewing our dataset
+
+Checking the dimensions of our dataset
+```{r}
+dim(sales)
+```
+Let's preview the top of our dataset
+```{r}
+head(sales)
+```
+
+Let's check the bottom of our dataset.
+
+```{r}
+tail(sales)
+```
+
+Detecting our anomalies. Let's plot to visualize our data.
+```{r}
+sales %>%
+    time_decompose(Sales) %>%
+    anomalize(remainder) %>%
+    time_recompose() %>%
+    plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.5)
+```
+There are no anomalies in our dataset.
+
+
+
+
